@@ -13,6 +13,7 @@ const {
   chain,
   curry3,
   curry4,
+  fromMaybe,
   get,
   gets,
   is,
@@ -20,6 +21,7 @@ const {
   map,
   maybeToEither,
   max,
+  parseInt,
   pipe,
   Right,
 } = require('sanctuary');
@@ -117,7 +119,7 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
         );
         const offset = fromMaybe(
           0,
-          parseInt(ctx.request.query._offset)
+          parseInt(10, ctx.request.query._offset)
         );
         const pageDataₑ = map(getPage(limit, offset), mockₑ);
 
