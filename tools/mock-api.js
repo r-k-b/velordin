@@ -1,5 +1,5 @@
 const log = require('../lib/logs')({name: 'mock-api'});
-log.info('starting');
+log.info('▶ starting');
 
 const appRoot = require('app-root-path');
 const Koa = require('koa');
