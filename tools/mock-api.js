@@ -10,9 +10,14 @@ const fs = Promise.promisifyAll(require("fs"));
 const {
   bimap,
   chain,
+  curry2,
+  curry4,
+  fromMaybe,
+  get,
   gets,
   is,
   Left,
+  map,
   maybeToEither,
   pipe,
   Right,
@@ -45,14 +50,32 @@ const router = new Router({
   prefix: '/api/v0'
 });
 
-/* getMock :: Array (String) -> Either Object Object -> Either Object (Array a)
+
+/** wrapResponse :: a -> Object a
+*
+* Emulate the wrapping that Accelo provides.
+*
+* (there's a better way to write that type signature, right?)
+*/
+function wrapResponse(data) {
+  return {
+    "meta" : {
+      "version" : "0.1.1",
+      "status" : "ok",
+      "message" : "Everything executed as expected."
+    },
+    "response" : data
+  }
+}
+
+/** getMock :: Array (String) -> Either Object Object -> Either Object (Array a)
  */
 function getMock(path, mocksₑ) {
   return chain(
     mockdata => pipe(
       [
         gets(is(Array), path),
-        maybeToEither({message: 'No mock data found at path', mockdata, path})
+        maybeToEither({message: 'No mock data found at path', path})
       ],
       mockdata
     ),
@@ -60,33 +83,60 @@ function getMock(path, mocksₑ) {
   )
 }
 
+/** getPage :: Integer -> Array (Array a) -> Array a
+ */
+const getPage = curry2(function _getPage(page, mocks) {
+  const got = get(is(Array), `${page}`, mocks);
+  return fromMaybe([], got);
+});
 
-router.get('/activities',
-  async(ctx, next) => {
-    const mockₑ = getMock(['get', 'activities', '0'], await mocksfileₚₑ);
+/** addSimpleEndpoint :: Promise (Either Object Object) -> Router -> String -> Array String -> router
+ *
+ * Create a simple mock of a paginated Accelo endpoint.
+ *
+ * todo: make that type sig more informative
+ */
+const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, router, path, mockpath) {
+  log.trace({path}, 'registering simple endpoint');
+  return router.get(path,
+    async(ctx, next) => {
+      const mockₑ = getMock(mockpath, await mocksfileₚₑ);
+      const page = ctx.request.query.page - 1 || 0;
+      const pageDataₑ = map(getPage(page), mockₑ);
 
-    function sendBody(data) {
-      try {
-        ctx.body = data;
-        next();
-      } catch (err) {
-        ctx.body = {message: err.message};
-        ctx.status = err.status || 500
+      function sendBody(data) {
+        try {
+          ctx.body = wrapResponse(data);
+          next();
+        } catch (error) {
+          log.warn({error, url: ctx.url}, '500 error while responding');
+          ctx.body = {message: error.message};
+          ctx.status = error.status || 500
+        }
       }
+
+      function sendNothing(msg) {
+        const s = 'nonexistent mock data';
+        log.warn({url: ctx.url, msg: msg.message, mockpath}, s);
+        ctx.status = 500;
+        ctx.body = {message: s, response: msg};
+        next();
+      }
+
+      bimap(sendNothing, sendBody, pageDataₑ);
     }
+  );
+});
 
-    function sendNothing(msg) {
-      ctx.status = 500;
-      ctx.body = {message: msg};
-      next();
-    }
+const routerWithSimple = addSimpleEndpoint(mocksfileₚₑ, router, '/activities', ['get', 'activities']);
 
-    bimap(sendNothing, sendBody, mockₑ);
-  }
-);
-
+async function reqLogger(ctx, next) {
+  log.trace({method: ctx.method, url: ctx.url}, 'request');
+  await next();
+}
 
 app
-  .use(router.routes())
-  .use(router.allowedMethods())
+  .use(reqLogger)
+  .use(routerWithSimple.routes())
+  .use(routerWithSimple.allowedMethods())
   .listen(3001);
