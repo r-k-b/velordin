@@ -30,8 +30,6 @@ const defaultPageSize = 10;
 const maxPageSize = 50;
 
 
-
-
 /*
  Lacking a formal type system, let's see if a loose kind of "suffix Hungarian" will help...
 
@@ -130,7 +128,7 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
 
         function sendNothing(msg) {
           const s = 'nonexistent mock data';
-          log.warn({url: ctx.url, msg: msg.message, mockpath}, s);
+          log.warn({nothing: {url: ctx.url, msg: msg.message, mockpath}}, s);
           ctx.status = 500;
           ctx.body = {message: s, response: msg};
           next();
@@ -149,7 +147,7 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
 const routerWithSimple = addSimpleEndpoint(mocksfileₚₑ, router, '/activities', ['get', 'activities']);
 
 async function reqLogger(ctx, next) {
-  log.trace({method: ctx.method, url: ctx.url}, 'request');
+  log.trace({request: {method: ctx.method, url: ctx.url}}, 'request');
   await next();
 }
 
