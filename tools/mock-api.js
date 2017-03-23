@@ -20,7 +20,7 @@ const {
   Left,
   map,
   maybeToEither,
-  max,
+  min,
   parseInt,
   pipe,
   Right,
@@ -108,7 +108,7 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
       // NB: there's nothing to handle exceptions from this function...
       try {
         const mockₑ = getMock(mockpath, await mocksfileₚₑ);
-        const limit = max(
+        const limit = min(
           fromMaybe(
             defaultPageSize,
             parseInt(10, ctx.request.query._limit)
@@ -120,6 +120,18 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
           parseInt(10, ctx.request.query._offset)
         );
         const pageDataₑ = map(getPage(limit, offset), mockₑ);
+
+        log.trace(
+          {
+            responding: {
+              path,
+              url: ctx.url,
+              limit,
+              offset,
+            }
+          },
+          'responding on simple endpoint'
+        );
 
         function sendBody(data) {
           ctx.body = wrapResponse(data);
