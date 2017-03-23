@@ -6,10 +6,23 @@ const log = createLogger({name: 'main'});
 log.info('▶ starting');
 
 const auth = require('./lib/auth');
-const {streamPages} = require('./lib/stream-pages');
+const padStart = require('string.prototype.padstart');
+const {parallelStreamPages} = require('./lib/stream-pages');
+const {
+  map,
+  max,
+  reduce,
+} = require('sanctuary');
 
-// 'http://localhost:3001/api/v0/activities?_page=2'
-// 'https://bigbluedigital.api.accelo.com/api/v0/activities?_page=2'
+
+function shortIdList(items) {
+  const justIds = map(x => x.id.toString(), items);
+  const idLengths = map(x => x.length, justIds);
+  const longest = reduce(max, 0, idLengths);
+  const padded = map(x => padStart(x, longest, ' '), justIds);
+  return padded
+}
+
 
 async function main() {
   const tokenResponse = await auth.getToken({
@@ -18,15 +31,18 @@ async function main() {
     password: process.env['CLIENTSECRET'],
   });
 
-  const page$ = streamPages(
+  const page$ = parallelStreamPages(
     {accessToken:tokenResponse['access_token']},
-    'https://bigbluedigital.api.accelo.com/api/v0/activities?_page=2'
+    // {},
+    'https://bigbluedigital.api.accelo.com/api/v0/activities?_limit=3'
+    // 'http://localhost:3001/api/v0/activities?_limit=3'
   )
-    .take(1);
+    .take(10);
 
   page$.addListener({
     next: next => {
-      log.debug({next: 'next'}, 'page$')
+      // log.debug({next_ids: shortIdList(next)}, 'page$')
+      log.debug({next}, 'page$')
     },
     error: error => {
       log.error({error}, 'page$')
@@ -37,4 +53,7 @@ async function main() {
   });
 }
 
-main();
+main()
+  .catch(error => {
+    log.error({error}, 'main()')
+  });
