@@ -9,7 +9,7 @@ technical debt, and it doesn't meet requirements.
 Get realtime, colored, filtered, readable output from a bunyan logfile:
 
 ```bash
-tail -f logs/all.log | bunyan -c 'this.level >= WARN' --color | less -R +F
+tail -f logs/all.log | bunyan -c 'this.level >= TRACE' --color | less -R +F
 ```
 
 

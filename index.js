@@ -5,32 +5,36 @@ const {createLogger} = require('./lib/logs');
 const log = createLogger({name: 'main'});
 log.info('▶ starting');
 
-// const {streamPages} = require('./lib/stream-pages');
-//
-// const page$ = streamPages('http://localhost:3001/api/v0/activities?_page=2')
-//   .take(2);
-//
-// page$.addListener({
-//   next: next => {
-//     log.debug({next}, 'page$')
-//   },
-//   error: error => {
-//     log.error({error}, 'page$')
-//   },
-//   complete: () => {
-//     log.debug('page$ complete')
-//   }
-// });
-
 const auth = require('./lib/auth');
+const {streamPages} = require('./lib/stream-pages');
 
-auth.getToken({
-  endpoint: 'https://bigbluedigital.api.accelo.com/oauth2/v0/token',
-  // endpoint: 'http://requestb.in/sl6nkisl',
-  username: process.env['CLIENTID'],
-  password: process.env['CLIENTSECRET'],
-  // username: process.env['CLIENTID'],
-  // password: 'CLIENTSECRET',
-}).catch(error => {
-  log.error({error}, 'getToken failed');
-});
+// 'http://localhost:3001/api/v0/activities?_page=2'
+// 'https://bigbluedigital.api.accelo.com/api/v0/activities?_page=2'
+
+async function main() {
+  const tokenResponse = await auth.getToken({
+    endpoint: 'https://bigbluedigital.api.accelo.com/oauth2/v0/token',
+    username: process.env['CLIENTID'],
+    password: process.env['CLIENTSECRET'],
+  });
+
+  const page$ = streamPages(
+    {accessToken:tokenResponse['access_token']},
+    'https://bigbluedigital.api.accelo.com/api/v0/activities?_page=2'
+  )
+    .take(1);
+
+  page$.addListener({
+    next: next => {
+      log.debug({next: 'next'}, 'page$')
+    },
+    error: error => {
+      log.error({error}, 'page$')
+    },
+    complete: () => {
+      log.debug('page$ complete')
+    }
+  });
+}
+
+main();
