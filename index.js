@@ -42,23 +42,32 @@ async function main() {
   // )
   //   .take(10);
 
+  const startTiming = process.hrtime();
   const tick$ = xs.periodic(500);
 
-  const dripfeed = Dripfeeder(tick$);
-  const df1 = dripfeed.subscribe();
-  const df2 = dripfeed.subscribe();
-  const df3$ = xs.create();
+  const dripfeed = Dripfeeder(tick$, 'primary');
+  const df1 = dripfeed.subscribe('df1');
+  const df2 = dripfeed.subscribe('df2');
 
   function label(s) {
     return function _label(x) {
-      return {label: s, value: x}
+      const diff = process.hrtime(startTiming);
+      return {
+        label: s,
+        value: x,
+        timing_ms: Math.floor(diff[0] * 1e3 + diff[1] / 1e6)
+      }
     }
   }
 
+  const df1_dripfeed = Dripfeeder(df1.drip$, 'secondary');
+  const df1a = df1_dripfeed.subscribe('df1a');
+  const df1b = df1_dripfeed.subscribe('df1b');
+
   const page$ = xs.merge(
-    df1.drip$.map(label('df1')),
-    df2.drip$.map(label('df2')),
-    df3$.map(label('df3'))
+    df1a.drip$.map(label('df1a')),
+    df1b.drip$.map(label('df1b')),
+    df2.drip$.map(label('df2'))
   );
 
   setTimeout(() => {
@@ -66,16 +75,11 @@ async function main() {
   }, 4e3);
 
   setTimeout(() => {
-    const df3 = dripfeed.subscribe();
-    df3$.imitate(df3.drip$);
-
-    setTimeout(() => {
-      df3.unsubscribe();
-    }, 3e3)
+    df1a.unsubscribe();
   }, 6e3);
 
   setTimeout(() => {
-    df1.unsubscribe();
+    df1b.unsubscribe();
   }, 8e3);
 
   page$.addListener({
