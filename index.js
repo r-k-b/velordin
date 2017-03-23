@@ -43,7 +43,7 @@ async function main() {
   //   .take(10);
 
   const startTiming = process.hrtime();
-  const tick$ = xs.periodic(500);
+  const tick$ = xs.periodic(500).take(8);
 
   const dripfeed = Dripfeeder(tick$, 'primary');
   const df1 = dripfeed.subscribe('df1');
@@ -72,7 +72,7 @@ async function main() {
 
   setTimeout(() => {
     df2.unsubscribe();
-  }, 4e3);
+  }, 2e3);
 
   setTimeout(() => {
     df1a.unsubscribe();
@@ -80,7 +80,11 @@ async function main() {
 
   setTimeout(() => {
     df1b.unsubscribe();
-  }, 8e3);
+  }, 6e3);
+
+  // setTimeout(() => {
+  //   df1b.unsubscribe();
+  // }, 9e3);
 
   page$.addListener({
     next: next => {
