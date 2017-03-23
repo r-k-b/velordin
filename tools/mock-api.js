@@ -1,4 +1,4 @@
-const {relevantProps, createLogger} = require('../lib/logs');
+const {createLogger} = require('../lib/logs');
 const log = createLogger({name: 'mock-api'});
 log.info('▶ starting');
 
@@ -47,7 +47,7 @@ const mocksfileₚₑ =
     .then(Right)
     .catch(error => {
       let s = 'error reading mocks file';
-      log.error({readFileError: relevantProps(error)}, s);
+      log.error({error}, s);
       return Left({message: s, error});
     });
 
@@ -136,7 +136,7 @@ const addSimpleEndpoint = curry4(function _addSimpleEndpoint(mocksfileₚₑ, ro
 
         bimap(sendNothing, sendBody, pageDataₑ);
       } catch (error) {
-        log.error({error: relevantProps(error), url: ctx.url}, 'exception while responding');
+        log.error({error, url: ctx.url}, 'exception while responding');
         ctx.body = {message: error.message};
         ctx.status = error.status || 500
       }
