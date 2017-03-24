@@ -39,16 +39,28 @@ async function main() {
       log.trace({tick}, 'rateLimitTick$')
     });
 
-  const page$ = parallelStreamPages(
-  // const page$ = streamPages(
+  // const page$ = parallelStreamPages(
+  const {page$, retry$} = streamPages(
     {
       accessToken: tokenResponse['access_token'],
       rateLimit$: rateLimitTick$,
     },
-    'https://bigbluedigital.api.accelo.com/api/v0/timers?_limit=24'
+    'https://bigbluedigital.api.accelo.com/api/v0/toimers?_limit=24'
     // 'http://localhost:3001/api/v0/activities?_limit=3'
   )
     /*.take(1)*/;
+
+  retry$.addListener({
+    next: next => {
+      log.debug({next}, 'retry$')
+    },
+    error: error => {
+      log.error({error}, 'retry$')
+    },
+    complete: () => {
+      log.debug('retry$ complete')
+    }
+  });
 
   page$.addListener({
     next: next => {
