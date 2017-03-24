@@ -8,7 +8,7 @@ log.info('▶ starting');
 
 const auth = require('./lib/auth');
 const padStart = require('string.prototype.padstart');
-const {parallelStreamPages} = require('./lib/stream-pages');
+const {parallelStreamPages, streamPages} = require('./lib/stream-pages');
 //noinspection NpmUsedModulesInstalled
 const xs = require('xstream').default;
 const {
@@ -34,21 +34,21 @@ async function main() {
     password: process.env['CLIENTSECRET'],
   });
 
-  const rateLimitTick$ = xs.periodic(5000)
-    .map(t => ({tick:t}))
+  const rateLimitTick$ = xs.periodic(200)
     .debug(tick => {
       log.trace({tick}, 'rateLimitTick$')
     });
 
   const page$ = parallelStreamPages(
+  // const page$ = streamPages(
     {
-      accessToken:tokenResponse['access_token'],
+      accessToken: tokenResponse['access_token'],
       rateLimit$: rateLimitTick$,
     },
-    'https://bigbluedigital.api.accelo.com/api/v0/activities?_limit=3'
+    'https://bigbluedigital.api.accelo.com/api/v0/timers?_limit=24'
     // 'http://localhost:3001/api/v0/activities?_limit=3'
   )
-    .take(9);
+    /*.take(1)*/;
 
   page$.addListener({
     next: next => {
