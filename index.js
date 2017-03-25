@@ -46,7 +46,7 @@ async function main() {
       rateLimit$: rateLimitTick$,
       maxRetries: 2,
     },
-    'https://bigbluedigital.api.accelo.com/api/v0/toimers?_limit=24'
+    'https://bigbluedigital.api.accelo.com/api/v0/timers?_limit=24'
     // 'http://localhost:3001/api/v0/activities?_limit=3'
   );
 
