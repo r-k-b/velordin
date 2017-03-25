@@ -26,13 +26,18 @@ function shortIdList(items) {
   return padded
 }
 
-
-async function main() {
+async function getNewToken() {
   const tokenResponse = await auth.getToken({
     endpoint: 'https://bigbluedigital.api.accelo.com/oauth2/v0/token',
     username: process.env['CLIENTID'],
     password: process.env['CLIENTSECRET'],
   });
+
+  return tokenResponse.accessToken;
+}
+
+async function main() {
+  const accessToken = await getNewToken();
 
   const rateLimitTick$ = xs.periodic(200)
     .debug(tick => {
@@ -42,7 +47,8 @@ async function main() {
   // const page$ = parallelStreamPages(
   const {page$, retry$} = streamPages(
     {
-      accessToken: tokenResponse['access_token'],
+      accessToken,
+      getNewToken,
       rateLimit$: rateLimitTick$,
       maxRetries: 2,
     },
