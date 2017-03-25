@@ -2,7 +2,7 @@ const appRoot = require('app-root-path');
 require('dotenv').config({path: appRoot + '/.env'});
 
 const {createLogger} = require('./lib/logs');
-const Dripfeeder = require('./lib/dripfeed');
+// const Dripfeeder = require('./lib/dripfeed');
 const log = createLogger({name: 'main'});
 log.info('▶ starting');
 
@@ -44,6 +44,7 @@ async function main() {
     {
       accessToken: tokenResponse['access_token'],
       rateLimit$: rateLimitTick$,
+      maxRetries: 2,
     },
     'https://bigbluedigital.api.accelo.com/api/v0/toimers?_limit=24'
     // 'http://localhost:3001/api/v0/activities?_limit=3'
