@@ -16,6 +16,7 @@
     "js-yaml": "^3.8.2",
     "koa": "^2.2.0",
     "koa-router": "next",
+    "lokijs": "^1.4.3",
     "node-fetch": "^1.6.3",
     "sanctuary": "^0.12.2",
     "string.prototype.padstart": "^3.0.0",

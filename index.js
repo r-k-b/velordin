@@ -47,8 +47,7 @@ async function main() {
     },
     'https://bigbluedigital.api.accelo.com/api/v0/toimers?_limit=24'
     // 'http://localhost:3001/api/v0/activities?_limit=3'
-  )
-    /*.take(1)*/;
+  );
 
   retry$.addListener({
     next: next => {
@@ -62,7 +61,7 @@ async function main() {
     }
   });
 
-  page$.addListener({
+  page$.take(1).addListener({
     next: next => {
       // log.debug({next_ids: shortIdList(next)}, 'page$');
       log.debug({next}, 'page$')
