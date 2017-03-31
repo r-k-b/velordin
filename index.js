@@ -7,6 +7,7 @@ const log = createLogger({name: 'main'});
 log.info('▶ starting');
 
 const auth = require('./lib/auth');
+const chalk = require('chalk');
 const padStart = require('string.prototype.padstart');
 const {parallelStreamPages, streamPages} = require('./lib/stream-pages');
 //noinspection NpmUsedModulesInstalled
@@ -62,6 +63,8 @@ async function main() {
     },
     error: error => {
       log.error({error}, 'retry$')
+      console.error(chalk.red(fromMaybe(error, get('stack', error))));
+      process.exit(1);
     },
     complete: () => {
       log.debug('retry$ complete')
@@ -75,6 +78,8 @@ async function main() {
     },
     error: error => {
       log.error({error}, 'page$')
+      console.error(chalk.red(fromMaybe(error, get('stack', error))));
+      process.exit(1);
     },
     complete: () => {
       log.debug('page$ complete')
@@ -85,4 +90,6 @@ async function main() {
 main()
   .catch(error => {
     log.error({error}, 'main()')
+    console.error(chalk.red(fromMaybe(error, get('stack', error))));
+    process.exit(1);
   });
