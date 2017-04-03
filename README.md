@@ -12,6 +12,14 @@ Get realtime, colored, filtered, readable output from a bunyan logfile:
 tail -f logs/all.log | bunyan -c 'this.level >= TRACE' --color | less -R +F
 ```
 
+# exit codes
+
+## `1`
+
+Something... bad happened?
+
+TODO: use more informative error codes 
+
 
 ## token response sample
 

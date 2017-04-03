@@ -13,6 +13,9 @@ const {parallelStreamPages, streamPages} = require('./lib/stream-pages');
 //noinspection NpmUsedModulesInstalled
 const xs = require('xstream').default;
 const {
+  fromMaybe,
+  get,
+  is,
   map,
   max,
   reduce,
@@ -62,9 +65,20 @@ async function main() {
       log.debug({next}, 'retry$')
     },
     error: error => {
-      log.error({error}, 'retry$')
-      console.error(chalk.red(fromMaybe(error, get('stack', error))));
-      process.exit(1);
+      log.error({error}, 'retry$');
+      console.error(
+        chalk.red(
+          fromMaybe(
+            error.toString(),
+            get(
+              is(String),
+              'stack',
+              error
+            )
+          )
+        )
+      );
+      process.exitCode = 1;
     },
     complete: () => {
       log.debug('retry$ complete')
@@ -77,9 +91,20 @@ async function main() {
       log.debug({next}, 'page$')
     },
     error: error => {
-      log.error({error}, 'page$')
-      console.error(chalk.red(fromMaybe(error, get('stack', error))));
-      process.exit(1);
+      log.error({error}, 'page$');
+      console.error(
+        chalk.red(
+          fromMaybe(
+            error.toString(),
+            get(
+              is(String),
+              'stack',
+              error
+            )
+          )
+        )
+      );
+      process.exitCode = 1;
     },
     complete: () => {
       log.debug('page$ complete')
@@ -89,7 +114,18 @@ async function main() {
 
 main()
   .catch(error => {
-    log.error({error}, 'main()')
-    console.error(chalk.red(fromMaybe(error, get('stack', error))));
-    process.exit(1);
+    log.error({error}, 'main()');
+    console.error(
+      chalk.red(
+        fromMaybe(
+          error.toString(),
+          get(
+            is(String),
+            'stack',
+            error
+          )
+        )
+      )
+    );
+    process.exitCode = 1;
   });
