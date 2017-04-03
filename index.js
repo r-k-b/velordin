@@ -1,23 +1,34 @@
 const appRoot = require('app-root-path');
+
 require('dotenv').config({path: appRoot + '/.env'});
 
 const assert = require('assert');
+
 const {createLogger} = require('./lib/logs');
+
 // const Dripfeeder = require('./lib/dripfeed');
+
 const log = createLogger({name: 'main'});
 log.info('▶ starting');
 
-const auth = require('./lib/auth');
 const chalk = require('chalk');
+
 const padStart = require('string.prototype.padstart');
+
+const DraftLog = require('draftlog').into(console);
+
+const auth = require('./lib/auth');
+
 const {
   annotatePageItems,
   parallelStreamPages,
   streamPages,
   flattenArrays,
 } = require('./lib/stream-pages');
+
 //noinspection NpmUsedModulesInstalled
 const xs = require('xstream').default;
+
 const {
   fromMaybe,
   get,
@@ -26,6 +37,46 @@ const {
   max,
   reduce,
 } = require('sanctuary');
+
+const mainSpinner = console.draft();
+let mainSpinnerFrame = 0;
+const mainSpinnerFrames = ['▘', '▝', '▗', '▖'];
+const mainSpinnerFrameCount = mainSpinnerFrames.length;
+
+function updateMainSpinner() {
+  mainSpinnerFrame = (mainSpinnerFrame + 1) % mainSpinnerFrameCount;
+  mainSpinner(`${mainSpinnerFrames[mainSpinnerFrame]} Streaming...`);
+}
+
+const mainSpinnerTimeout = setInterval(updateMainSpinner, 100);
+
+const itemsSpinner = console.draft();
+let itemsSpinnerCount = 0;
+function incrementItemsSpinner(latestId) {
+  // todo: show rate averages (10 sec, 60 sec, hour, lifetime?)
+  itemsSpinner(
+    `# Items received: ${
+      padStart(itemsSpinnerCount.toString(), 12, '.')
+    } (latest ID: ${
+      padStart(latestId || '?', 12, '.')
+    })`
+  );
+  itemsSpinnerCount++;
+}
+incrementItemsSpinner('');
+
+const retriesSpinner = console.draft();
+let retriesSpinnerCount = 0;
+function incrementRetriesSpinner() {
+  retriesSpinner(
+    `# Items received: ${
+      padStart(retriesSpinnerCount.toString(), 12, '.')
+    }`
+  );
+  retriesSpinnerCount++;
+}
+incrementRetriesSpinner();
+
 
 
 function shortIdList(items) {
@@ -55,16 +106,17 @@ async function main() {
       log.trace({tick}, 'rateLimitTick$')
     });
 
-  // const page$ = parallelStreamPages(
-  const {page$, retry$} = streamPages(
+  const {page$, retry$} = parallelStreamPages(
+  // const {page$, retry$} = streamPages(
     {
       accessToken,
       getNewToken,
-      rateLimit$: rateLimitTick$,
-      maxRetries: 2,
+      // rateLimit$: rateLimitTick$,
+      maxRetries: 6,
     },
-    'https://bigbluedigital.api.accelo.com/api/v0/timers?_limit=24'
-    // 'http://localhost:3001/api/v0/activities?_limit=3'
+    // 'https://bigbluedigital.api.accelo.com/api/v0/timers?_limit=24'
+    'https://bigbluedigital.api.accelo.com/api/v0/activities'
+    // 'http://localhost:3001/api/v0/activities'
   );
 
   const item$ = page$
@@ -75,11 +127,13 @@ async function main() {
     .filter(x => parseInt(x.item.id, 10) > 3000);
 
   const onlySome$ = item$
-    .endWhen(idHigh$);
+    // .endWhen(idHigh$)
+  ;
 
   retry$.addListener({
     next: next => {
-      log.debug({next}, 'retry$')
+      log.debug({next}, 'retry$');
+      incrementRetriesSpinner();
     },
     error: error => {
       log.error({error}, 'retry$');
@@ -98,7 +152,7 @@ async function main() {
       process.exitCode = 1;
     },
     complete: () => {
-      log.debug('retry$ complete')
+      log.info('retry$ complete')
     }
   });
 
@@ -106,10 +160,12 @@ async function main() {
     .addListener({
       next: next => {
         // log.debug({next_ids: shortIdList(next)}, 'page$');
-        log.debug({next}, 'page$')
+        log.debug({next}, 'page$');
+        incrementItemsSpinner(next.item.id);
       },
       error: error => {
         log.error({error}, 'page$');
+        clearInterval(mainSpinnerTimeout);
         console.error(
           chalk.red(
             fromMaybe(
@@ -125,7 +181,8 @@ async function main() {
         process.exitCode = 1;
       },
       complete: () => {
-        log.debug('page$ complete')
+        log.info('page$ complete');
+        clearInterval(mainSpinnerTimeout);
       }
     });
 }
@@ -133,6 +190,7 @@ async function main() {
 main()
   .catch(error => {
     log.error({error}, 'main()');
+    clearInterval(mainSpinnerTimeout);
     console.error(
       chalk.red(
         fromMaybe(
