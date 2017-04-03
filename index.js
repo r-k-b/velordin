@@ -1,6 +1,7 @@
 const appRoot = require('app-root-path');
 require('dotenv').config({path: appRoot + '/.env'});
 
+const assert = require('assert');
 const {createLogger} = require('./lib/logs');
 // const Dripfeeder = require('./lib/dripfeed');
 const log = createLogger({name: 'main'});
@@ -9,7 +10,12 @@ log.info('▶ starting');
 const auth = require('./lib/auth');
 const chalk = require('chalk');
 const padStart = require('string.prototype.padstart');
-const {parallelStreamPages, streamPages} = require('./lib/stream-pages');
+const {
+  annotatePageItems,
+  parallelStreamPages,
+  streamPages,
+  flattenArrays,
+} = require('./lib/stream-pages');
 //noinspection NpmUsedModulesInstalled
 const xs = require('xstream').default;
 const {
@@ -29,6 +35,7 @@ function shortIdList(items) {
   const padded = map(x => padStart(x, longest, ' '), justIds);
   return padded
 }
+
 
 async function getNewToken() {
   const tokenResponse = await auth.getToken({
@@ -60,6 +67,16 @@ async function main() {
     // 'http://localhost:3001/api/v0/activities?_limit=3'
   );
 
+  const item$ = page$
+    .map(annotatePageItems)
+    .compose(flattenArrays);
+
+  const idHigh$ = item$
+    .filter(x => parseInt(x.item.id, 10) > 3000);
+
+  const onlySome$ = item$
+    .endWhen(idHigh$);
+
   retry$.addListener({
     next: next => {
       log.debug({next}, 'retry$')
@@ -85,31 +102,32 @@ async function main() {
     }
   });
 
-  page$.take(1).addListener({
-    next: next => {
-      // log.debug({next_ids: shortIdList(next)}, 'page$');
-      log.debug({next}, 'page$')
-    },
-    error: error => {
-      log.error({error}, 'page$');
-      console.error(
-        chalk.red(
-          fromMaybe(
-            error.toString(),
-            get(
-              is(String),
-              'stack',
-              error
+  onlySome$
+    .addListener({
+      next: next => {
+        // log.debug({next_ids: shortIdList(next)}, 'page$');
+        log.debug({next}, 'page$')
+      },
+      error: error => {
+        log.error({error}, 'page$');
+        console.error(
+          chalk.red(
+            fromMaybe(
+              error.toString(),
+              get(
+                is(String),
+                'stack',
+                error
+              )
             )
           )
-        )
-      );
-      process.exitCode = 1;
-    },
-    complete: () => {
-      log.debug('page$ complete')
-    }
-  });
+        );
+        process.exitCode = 1;
+      },
+      complete: () => {
+        log.debug('page$ complete')
+      }
+    });
 }
 
 main()
