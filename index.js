@@ -48,7 +48,7 @@ function updateMainSpinner() {
   mainSpinner(`${mainSpinnerFrames[mainSpinnerFrame]} Streaming...`);
 }
 
-const mainSpinnerTimeout = setInterval(updateMainSpinner, 100);
+const mainSpinnerTimeout = setInterval(updateMainSpinner, 250);
 
 const itemsSpinner = console.draft();
 let itemsSpinnerCount = 0;
@@ -124,11 +124,12 @@ async function main() {
     .compose(flattenArrays);
 
   const idHigh$ = item$
-    .filter(x => parseInt(x.item.id, 10) > 3000);
+    .filter(x => parseInt(x.item.id, 10) > 1000);
 
   const onlySome$ = item$
-    // .endWhen(idHigh$)
-  ;
+    .endWhen(idHigh$);
+
+
 
   retry$.addListener({
     next: next => {

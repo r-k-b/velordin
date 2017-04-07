@@ -8,6 +8,8 @@
   "engines": {
     "nodejs": "7.7.3"
   },
+  "scripts": {
+  },
   "dependencies": {
     "app-root-path": "^2.0.1",
     "bluebird": "^3.5.0",
@@ -19,6 +21,7 @@
     "koa": "^2.2.0",
     "koa-router": "next",
     "lokijs": "^1.4.3",
+    "mssql": "^4.0.1",
     "node-fetch": "^1.6.3",
     "sanctuary": "^0.12.2",
     "sequelize": "^3.30.4",
